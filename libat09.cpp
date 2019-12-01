@@ -1,3 +1,4 @@
+#include "libat09config.h"
 #include "libat09.h"
 
 namespace at09
@@ -30,7 +31,7 @@ namespace at09
 
     Serial.begin(115200);
 
-    findBaudRate();
+    this->findBaudRate();
     
   }
 #else
@@ -44,18 +45,21 @@ namespace at09
   void AT09::findBaudRate()
   {
     String response;
-    bool isBaudFound;
+    bool isBaudFound = false;
     
 #ifdef DEBUG
-    SoftwareSerial * port = this->serial;
+    SoftwareSerial * port = (SoftwareSerial *)this->serial;
 #else
-    HardwareSerial * port = this->serial;
+    HardwareSerial * port = (HardwareSerial *)this->serial;
 #endif
   
-    for(int i = 0; i < 5; i++)
+    for(char i = 0; i < 7; i++)
     {
 #ifdef DEBUG
-      logMessage("Attempting " + baudRates[i] + "...");
+      char message[32];
+      snprintf(message, 32, "Attempting %l", baudRates[i]);
+      message[strlen(message)] = 0;
+      logMessage(message);
 #endif
       port->begin(baudRates[i]);
       isBaudFound = sendAndWait("AT");
@@ -82,6 +86,7 @@ namespace at09
 
     start = millis();
     
+    Serial.println(msg);
     this->serial->println(msg);
 
     while (diff < AT09_RESPONSE_TIMEOUT_MS)
@@ -90,6 +95,7 @@ namespace at09
       {
         this->lastResponse = this->serial->readStringUntil('\n');
         isResponseReceived = this->isResponseValid();
+        Serial.println(this->lastResponse);
         break;
       }
 
@@ -99,10 +105,10 @@ namespace at09
     return isResponseReceived;
   }
 
-  bool isResponseValid()
+  bool AT09::isResponseValid()
   {
     if (this->lastResponse.charAt(0) == '+' ||
-        this->lastResponse == "OK")
+        this->lastResponse == "OK\r")
     {
       return true;
     }
@@ -118,7 +124,7 @@ namespace at09
     // Relay serial to software serial
     if (Serial.available())
     {
-      received = Serial.readStringUntil('\n');
+      received = Serial.readStringUntil('\r');
       
       logMessage("< " + received);
       
@@ -128,7 +134,7 @@ namespace at09
     
     if (this->serial->available())
     {
-      this->lastResponse = this->serial->readStringUntil('\n');
+      this->lastResponse = this->serial->readStringUntil('\r');
 
 #ifdef DEBUG
       logMessage("> " + this->lastResponse);
@@ -151,7 +157,7 @@ namespace at09
     this->sendAndWait(commandPrefix);
 
 #ifdef DEBUG
-  logMessage("> " + this->lastResponse);
+    logMessage("> " + this->lastResponse);
 #endif
 
     return true;
@@ -178,7 +184,7 @@ namespace at09
   }
 
 #ifdef DEBUG
-  void logMessage(String message)
+  void logMessage(char * message)
   {
     Serial.println(message);
   }

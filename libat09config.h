@@ -3,4 +3,4 @@
 
 #define DEBUG
 
-#endif /*LIBAT09_CONFIG_H*/
+#endif /* LIBAT09_CONFIG_H */

@@ -1,5 +1,5 @@
-#ifndef LIBAT09
-#define LIBAT09
+#ifndef LIBAT09_H
+#define LIBAT09_H
 
 #include "libat09config.h"
 #include <Arduino.h>
@@ -67,4 +67,4 @@ namespace at09
 #endif
 }
 
-#endif /* LIBAT09 */
+#endif /* LIBAT09_H */

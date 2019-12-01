@@ -1,0 +1,7 @@
+{
+    "sketch": "libat09.ino",
+    "port": "COM4",
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328old",
+    "programmer": "AVR ISP"
+}

@@ -1,3 +1,4 @@
+#include "libat09config.h"
 #include "libat09.h"
 
 using namespace at09;
