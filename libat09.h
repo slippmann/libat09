@@ -5,10 +5,17 @@
 #include <Arduino.h>
 
 #ifdef DEBUG
-#include <SoftwareSerial.h>
+  #include <stdarg.h>
+  #include <SoftwareSerial.h>
 #endif
 
 #include <HardwareSerial.h>
+
+#ifdef DEBUG
+  #define RX_BUFFER_SIZE 128
+#else
+  #define RX_BUFFER_SIZE 16
+#endif
 
 namespace at09
 {
@@ -34,7 +41,7 @@ namespace at09
   private:
     char baudRate;
     char statePin;
-    String lastResponse;
+    char at09Response[RX_BUFFER_SIZE];
     Stream * serial;
 
 #ifdef DEBUG
@@ -43,15 +50,18 @@ namespace at09
 #endif
 
     void findBaudRate();
-    bool sendAndWait(String message);
+    bool sendAndWait(char * message);
     bool isResponseValid();
     
   public:
+
+    void Initialize(
 #ifdef DEBUG
-    void Initialize(char rx, char tx);
-#else
-    void Initialize();
+      char rx, 
+      char tx
 #endif
+    );
+
     void HandleSerialEvent();
     bool IsConnected();
     bool SetBaud(long baud);
@@ -60,11 +70,12 @@ namespace at09
     bool SetRole(BTRole role);
     bool SetServiceUUID(short uuid);
     bool SetCharacteristicUUID(short uuid);
-  };
+  }; /* class AT09 */
 
 #ifdef DEBUG
-    void logMessage(String message);
+  void logMessage(const char * format, ...);
 #endif
-}
+
+} /* namespace at09 */
 
 #endif /* LIBAT09_H */

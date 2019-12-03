@@ -3,6 +3,10 @@
 
 namespace at09
 {
+#ifdef DEBUG
+  char debugResponse[RX_BUFFER_SIZE];
+#endif
+
   const int AT09_RESPONSE_TIMEOUT_MS = 1000;
   
   const long baudRates[] = {
@@ -25,19 +29,19 @@ namespace at09
 #ifdef DEBUG
   void AT09::Initialize(char rx, char tx)
   {
-    this->rxPin = rx;
-    this->txPin = tx;    
-    this->serial = new SoftwareSerial(rx, tx);
+    rxPin = rx;
+    txPin = tx;    
+    serial = new SoftwareSerial(rx, tx);
 
     Serial.begin(115200);
 
-    this->findBaudRate();
+    findBaudRate();
     
   }
 #else
   void AT09::Initialize() 
   {
-    this->serial = &Serial;
+    serial = &Serial;
     findBaudRate();
   }
 #endif
@@ -48,18 +52,15 @@ namespace at09
     bool isBaudFound = false;
     
 #ifdef DEBUG
-    SoftwareSerial * port = (SoftwareSerial *)this->serial;
+    SoftwareSerial * port = (SoftwareSerial *)serial;
 #else
-    HardwareSerial * port = (HardwareSerial *)this->serial;
+    HardwareSerial * port = (HardwareSerial *)serial;
 #endif
   
     for(char i = 0; i < 7; i++)
     {
 #ifdef DEBUG
-      char message[32];
-      snprintf(message, 32, "Attempting %l", baudRates[i]);
-      message[strlen(message)] = 0;
-      logMessage(message);
+      logMessage("Attempting %l...", baudRates[i]);
 #endif
       port->begin(baudRates[i]);
       isBaudFound = sendAndWait("AT");
@@ -78,68 +79,64 @@ namespace at09
 #endif
   }
   
-  bool AT09::sendAndWait(String msg) 
+  bool AT09::sendAndWait(char * message) 
   {
     bool isResponseReceived = false;
     unsigned long start;
     unsigned long diff = 0;
 
     start = millis();
-    
-    Serial.println(msg);
-    this->serial->println(msg);
 
-    while (diff < AT09_RESPONSE_TIMEOUT_MS)
+#ifdef DEBUG
+    logMessage("> %s", message);
+#endif
+
+    serial->println(message);
+
+    for (int i = 0; i < RX_BUFFER_SIZE && serial->available(); i++)
     {
-      if(this->serial->available())
-      {
-        this->lastResponse = this->serial->readStringUntil('\n');
-        isResponseReceived = this->isResponseValid();
-        Serial.println(this->lastResponse);
-        break;
-      }
-
-      diff = millis() - start;
+      at09Response[i] = serial->read();
+      
+      if ((millis() - start) > AT09_RESPONSE_TIMEOUT_MS)
+        return false;
     }
-  
+
+    isResponseReceived = isResponseValid();
+
+#ifdef DEBUG
+    logMessage("< %s", at09Response);
+#endif
+
     return isResponseReceived;
   }
 
   bool AT09::isResponseValid()
   {
-    if (this->lastResponse.charAt(0) == '+' ||
-        this->lastResponse == "OK\r")
-    {
-      return true;
-    }
-
-    return false;
+    return (at09Response[0] == '+' ||
+        strcmp(at09Response, "OK\r") == 0);
   }
   
   void AT09::HandleSerialEvent()
   {
-    String received;
-
 #ifdef DEBUG
     // Relay serial to software serial
-    if (Serial.available())
+    for (int i = 0; Serial.available() && i < RX_BUFFER_SIZE; i++)
     {
-      received = Serial.readStringUntil('\r');
-      
-      logMessage("< " + received);
-      
-      this->serial->println(received);
+      debugResponse[i] = Serial.read();
     }
+
+    logMessage("< %s", debugResponse);
+    serial->println(debugResponse);
 #endif
     
-    if (this->serial->available())
+    for (int i = 0; serial->available() && i < RX_BUFFER_SIZE; i++)
     {
-      this->lastResponse = this->serial->readStringUntil('\r');
+      at09Response[i] = serial->read();
+    }
 
 #ifdef DEBUG
-      logMessage("> " + this->lastResponse);
+    logMessage("> %s", at09Response);
 #endif
-    }
   }
   
   bool AT09::IsConnected()
@@ -154,11 +151,7 @@ namespace at09
   
   bool AT09::SendHello()
   {
-    this->sendAndWait(commandPrefix);
-
-#ifdef DEBUG
-    logMessage("> " + this->lastResponse);
-#endif
+    sendAndWait(commandPrefix);
 
     return true;
   }
@@ -184,9 +177,19 @@ namespace at09
   }
 
 #ifdef DEBUG
-  void logMessage(char * message)
+#define LOG_BUFFER_SIZE 32
+  void logMessage(const char * format, ...)
   {
-    Serial.println(message);
+    va_list argptr;
+    char buffer[LOG_BUFFER_SIZE] = {'\0'};
+
+    va_start(argptr, format);
+
+    vsnprintf(buffer, LOG_BUFFER_SIZE, format, argptr);
+
+    Serial.println(buffer);
+
+    va_end(argptr);
   }
 #endif
 }
