@@ -1,0 +1,45 @@
+
+*******************************************************************
+* Command             Description			           
+*----------------------------------------------------------------
+* AT                  Check if the command terminal work normally 
+* AT+DEFAULT          Restore factory default			   
+* AT+BAUD
+* AT+RESET            Software reboot				   
+* AT+ROLE             Get/Set current role.	                   
+* AT+DISC             Disconnect connection                       
+* AT+ADVEN            Broadcast switch  		           
+* AT+ADVI             Broadcast interval		           
+* AT+NINTERVAL        Connection interval                         
+* AT+POWE             Get/Set RF transmit power 		   
+* AT+NAME             Get/Set local device name                   
+* AT+LADDR            Get local bluetooth address		   
+* AT+VERSION          Get firmware, bluetooth, HCI and LMP version
+* AT+TYPE             Binding and pairing settings		   
+* AT+PIN              Get/Set pin code for pairing                
+* AT+UUID             Get/Set system SERVER_UUID .            	   
+* AT+CHAR             Get/Set system CHAR_UUID .            	   
+* AT+INQ              Search from device		           
+* AT+RSLV             Read the scan list MAC address		   
+* AT+CONN             Connected scan list device		   
+* AT+CONA             Connection specified MAC		           
+* AT+BAND             Binding from device		           
+* AT+CLRBAND          Cancel binding    		           
+* AT+GETDCN           Number of scanned list devices		   
+* AT+SLEEP            Sleep mode 		                   
+* AT+HELP             List all the commands		           
+* --------------------------------------------------------------- 
+******************************************************************
+
+Command         Parameters      Default
+BAUD            0 - 9600        0 - 9600
+                1 - 9600
+                2 - 2400
+                3 - 4800
+                4 - 9600
+                5 - 19200
+                6 - 38400
+                7 - 57600
+                8 - 115200
+
+ADVI            0-6             0

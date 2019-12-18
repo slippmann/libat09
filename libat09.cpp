@@ -4,7 +4,7 @@
 namespace at09
 {
 #ifdef DEBUG
-  char debugResponse[RX_BUFFER_SIZE];
+  char debugResponse[BUFFER_SIZE];
 #endif
 
   const int AT09_RESPONSE_TIMEOUT_MS = 1000;
@@ -32,8 +32,10 @@ namespace at09
     rxPin = rx;
     txPin = tx;    
     serial = new SoftwareSerial(rx, tx);
+    serial->setTimeout(AT09_RESPONSE_TIMEOUT_MS);
 
     Serial.begin(115200);
+    Serial.setTimeout(AT09_RESPONSE_TIMEOUT_MS);
 
     findBaudRate();
     
@@ -42,6 +44,7 @@ namespace at09
   void AT09::Initialize() 
   {
     serial = &Serial;
+    serial.setTimeout(AT09_RESPONSE_TIMEOUT_MS);
     findBaudRate();
   }
 #endif
@@ -51,6 +54,8 @@ namespace at09
     String response;
     bool isBaudFound = false;
     
+    initialized = true;
+
 #ifdef DEBUG
     SoftwareSerial * port = (SoftwareSerial *)serial;
 #else
@@ -60,7 +65,7 @@ namespace at09
     for(char i = 0; i < 7; i++)
     {
 #ifdef DEBUG
-      logMessage("Attempting %l...", baudRates[i]);
+      logMessage("Attempting %ld...", baudRates[i]);
 #endif
       port->begin(baudRates[i]);
       isBaudFound = sendAndWait("AT");
@@ -77,65 +82,80 @@ namespace at09
 #ifdef DEBUG
     logMessage("Not found.");
 #endif
+    initialized = false;
   }
   
   bool AT09::sendAndWait(char * message) 
   {
-    bool isResponseReceived = false;
     unsigned long start;
-    unsigned long diff = 0;
+    int i = 0;
+
+    if (!initialized)
+      return false;
 
     start = millis();
 
 #ifdef DEBUG
-    logMessage("> %s", message);
+    logMessage("< %s", message);
 #endif
 
     serial->println(message);
 
-    for (int i = 0; i < RX_BUFFER_SIZE && serial->available(); i++)
+    while ((millis() - start) < AT09_RESPONSE_TIMEOUT_MS)
     {
-      at09Response[i] = serial->read();
-      
-      if ((millis() - start) > AT09_RESPONSE_TIMEOUT_MS)
-        return false;
+      if (serial->available())
+      {
+        serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
+        break;
+      }
     }
 
-    isResponseReceived = isResponseValid();
-
 #ifdef DEBUG
-    logMessage("< %s", at09Response);
+    if (at09Response[0])
+      logMessage("> %s", at09Response);
 #endif
-
-    return isResponseReceived;
+    return isResponseValid();
   }
 
   bool AT09::isResponseValid()
   {
-    return (at09Response[0] == '+' ||
-        strcmp(at09Response, "OK\r") == 0);
+    bool isValid = (at09Response[0] == '+' ||
+                    (at09Response[0] == 'O' && 
+                     at09Response[1] == 'K'));
+    at09Response[0] = 0;
+    return isValid;
   }
   
   void AT09::HandleSerialEvent()
   {
+    if (!initialized)
+      return;
+
 #ifdef DEBUG
     // Relay serial to software serial
-    for (int i = 0; Serial.available() && i < RX_BUFFER_SIZE; i++)
+    if (Serial.available())
     {
-      debugResponse[i] = Serial.read();
+      Serial.readBytesUntil('\n', debugResponse, BUFFER_SIZE);
     }
 
-    logMessage("< %s", debugResponse);
-    serial->println(debugResponse);
+    if (debugResponse[0])
+    {
+      logMessage("< %s", debugResponse);
+      serial->println(debugResponse);
+      debugResponse[0] = 0;
+    }
+
 #endif
     
-    for (int i = 0; serial->available() && i < RX_BUFFER_SIZE; i++)
+    if (serial->available())
     {
-      at09Response[i] = serial->read();
+      serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
     }
 
 #ifdef DEBUG
-    logMessage("> %s", at09Response);
+    if (at09Response[0])
+      logMessage("> %s", at09Response);
+      at09Response[0] = 0;
 #endif
   }
   
@@ -156,24 +176,32 @@ namespace at09
     return true;
   }
   
-  bool AT09::SetName(String btName)
+  bool AT09::SetName(char * btName)
   {
-    return false;
+    char command[BUFFER_SIZE];
+    snprintf(command, BUFFER_SIZE, "AT+NAME=%s", btName);
+    return sendAndWait(command);
   }
   
   bool AT09::SetRole(BTRole role)
   {
-    return false;
+    char command[BUFFER_SIZE];
+    snprintf(command, BUFFER_SIZE, "AT+ROLE=%d", (int)role);
+    return sendAndWait(command);
   }
   
-  bool AT09::SetServiceUUID(short uuid)
+  bool AT09::SetServiceUUID(int uuid)
   {
-    return false;
+    char command[BUFFER_SIZE];
+    snprintf(command, BUFFER_SIZE, "AT+UUID=%d", (int)uuid);
+    return sendAndWait(command);
   }
   
-  bool AT09::SetCharacteristicUUID(short uuid)
+  bool AT09::SetCharacteristicUUID(int uuid)
   {
-    return false;
+    char command[BUFFER_SIZE];
+    snprintf(command, BUFFER_SIZE, "AT+CHAR=%d", (int)uuid);
+    return sendAndWait(command);
   }
 
 #ifdef DEBUG
@@ -181,7 +209,7 @@ namespace at09
   void logMessage(const char * format, ...)
   {
     va_list argptr;
-    char buffer[LOG_BUFFER_SIZE] = {'\0'};
+    char buffer[LOG_BUFFER_SIZE];
 
     va_start(argptr, format);
 

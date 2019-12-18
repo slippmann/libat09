@@ -12,9 +12,9 @@
 #include <HardwareSerial.h>
 
 #ifdef DEBUG
-  #define RX_BUFFER_SIZE 128
+  #define BUFFER_SIZE 128
 #else
-  #define RX_BUFFER_SIZE 16
+  #define BUFFER_SIZE 16
 #endif
 
 namespace at09
@@ -39,9 +39,10 @@ namespace at09
   class AT09
   {
   private:
+    bool initialized;
     char baudRate;
     char statePin;
-    char at09Response[RX_BUFFER_SIZE];
+    char at09Response[BUFFER_SIZE];
     Stream * serial;
 
 #ifdef DEBUG
@@ -66,10 +67,12 @@ namespace at09
     bool IsConnected();
     bool SetBaud(long baud);
     bool SendHello();
-    bool SetName(String btName);
+    bool SetName(char * btName);
     bool SetRole(BTRole role);
-    bool SetServiceUUID(short uuid);
-    bool SetCharacteristicUUID(short uuid);
+    bool SetServiceUUID(int uuid);
+    bool SetCharacteristicUUID(int uuid);
+    bool SetPowerLevel(char level);
+    bool SetAdvertisingInterval(char interval);
   }; /* class AT09 */
 
 #ifdef DEBUG
