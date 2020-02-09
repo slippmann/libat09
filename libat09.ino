@@ -9,13 +9,13 @@ AT09 blueDash;
 void setup()
 { 
 #ifdef DEBUG
-  blueDash.Initialize(3, 2);
+	blueDash.Initialize(3, 2);
 #else
-  blueDash.Initialize();
+	blueDash.Initialize();
 #endif
 }
 
 void loop()
 {
-  blueDash.HandleSerialEvent();
+	blueDash.HandleSerialEvent();
 }
