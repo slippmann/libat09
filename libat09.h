@@ -51,8 +51,8 @@ namespace at09
 #endif
 
 		void findBaudRate();
-		bool sendAndWait(char * message);
 		bool isResponseValid();
+		bool sendAndWait(char * message);
 		
 	public:
 

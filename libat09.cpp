@@ -62,7 +62,7 @@ namespace at09
 		HardwareSerial * port = (HardwareSerial *)serial;
 #endif
 	
-		for(char i = 0; i < 7; i++)
+		for (char i = 0; i < 7; i++)
 		{
 #ifdef DEBUG
 			logMessage("Attempting %ld...", baudRates[i]);
@@ -88,6 +88,7 @@ namespace at09
 	bool AT09::sendAndWait(char * message) 
 	{
 		unsigned long start;
+		int numBytesRead = 0;
 		int i = 0;
 
 		if (!initialized)
@@ -105,7 +106,8 @@ namespace at09
 		{
 			if (serial->available())
 			{
-				serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
+				numBytesRead = serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
+				at09Response[numBytesRead] = 0; // Terminate string
 				break;
 			}
 		}
@@ -128,6 +130,8 @@ namespace at09
 
 	void AT09::HandleSerialEvent()
 	{
+		int numBytesRead = 0;
+
 		if (!initialized)
 			return;
 
@@ -135,7 +139,8 @@ namespace at09
 		// Relay serial to software serial
 		if (Serial.available())
 		{
-			Serial.readBytesUntil('\n', debugResponse, BUFFER_SIZE);
+			numBytesRead = Serial.readBytesUntil('\n', debugResponse, BUFFER_SIZE);
+			debugResponse[numBytesRead] = 0; // Terminate string
 		}
 
 		if (debugResponse[0])
@@ -149,7 +154,8 @@ namespace at09
 
 		if (serial->available())
 		{
-			serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
+			numBytesRead = serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
+			at09Response[numBytesRead] = 0; // Terminate string
 		}
 
 #ifdef DEBUG
@@ -166,12 +172,12 @@ namespace at09
 
 	bool SetBaud(long baud)
 	{
-
+		return false;
 	}
 	
 	bool AT09::SendHello()
 	{
-		sendAndWait(commandPrefix);
+		sendAndWait((const char *)commandPrefix);
 
 		return true;
 	}
@@ -205,7 +211,7 @@ namespace at09
 	}
 
 #ifdef DEBUG
-#define LOG_BUFFER_SIZE 32
+#define LOG_BUFFER_SIZE 128
 	void logMessage(const char * format, ...)
 	{
 		va_list argptr;
