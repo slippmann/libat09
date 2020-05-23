@@ -63,8 +63,15 @@ namespace at09
 #endif
 		);
 
+		bool Disconnect();
 		void HandleSerialEvent();
 		bool IsConnected();
+		bool FactoryReset();
+		bool Reboot();
+		bool SetAdvertismentEnable(bool isEnabled);
+		bool SetAdvertisingInterval(char interval);
+		bool SetConnectionInterval(char interval);
+		long GetBluetoothAddress();
 		bool SetBaud(long baud);
 		bool SendHello();
 		bool SetName(char * btName);
@@ -72,7 +79,7 @@ namespace at09
 		bool SetServiceUUID(int uuid);
 		bool SetCharacteristicUUID(int uuid);
 		bool SetPowerLevel(char level);
-		bool SetAdvertisingInterval(char interval);
+		bool Sleep();
 	}; /* class AT09 */
 
 #ifdef DEBUG
