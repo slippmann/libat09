@@ -2,14 +2,8 @@
 #define LIBAT09_H
 
 #include "libat09config.h"
+
 #include <Arduino.h>
-
-#ifdef DEBUG
-	#include <stdarg.h>
-	#include <SoftwareSerial.h>
-#endif
-
-#include <HardwareSerial.h>
 
 #ifdef DEBUG
 	#define BUFFER_SIZE 128
@@ -52,7 +46,7 @@ namespace at09
 
 		void findBaudRate();
 		bool isResponseValid();
-		bool sendAndWait(char * message);
+		bool sendAndWait(const char * message);
 		
 	public:
 

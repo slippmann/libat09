@@ -1,6 +1,14 @@
 #include "libat09config.h"
 #include "libat09.h"
 
+#include <Arduino.h>
+#include <HardwareSerial.h>
+
+#ifdef DEBUG
+	#include <stdarg.h>
+	#include <SoftwareSerial.h>
+#endif
+
 namespace at09
 {
 #ifdef DEBUG
@@ -85,7 +93,7 @@ namespace at09
 		initialized = false;
 	}
 
-	bool AT09::sendAndWait(char * message) 
+	bool AT09::sendAndWait(const char * message) 
 	{
 		unsigned long start;
 		int numBytesRead = 0;
