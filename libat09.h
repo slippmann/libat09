@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 #ifdef DEBUG
-	#define BUFFER_SIZE 512
+	#define BUFFER_SIZE 70
 #else
 	#define BUFFER_SIZE 16
 #endif
