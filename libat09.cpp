@@ -12,7 +12,8 @@
 namespace at09
 {
 #ifdef DEBUG
-	char debugResponse[BUFFER_SIZE];
+	char debugCommand[BUFFER_SIZE];
+	unsigned int debugIndex = 0;
 #endif
 
 	const int AT09_RESPONSE_TIMEOUT_MS = 1000;
@@ -35,24 +36,56 @@ namespace at09
 	const char * commandChar = "+CHAR";
 
 #ifdef DEBUG
+	void AT09::HandleSerialRelay()
+	{
+		bool isCommandComplete = false;
+		bool isResponseComplete = false;
+
+		if (!initialized)
+			return;
+
+		isCommandComplete = serialReadLine(&Serial,
+										   debugCommand,
+										   &debugIndex,
+										   sizeof(debugCommand),
+										   0);
+		if (isCommandComplete)
+		{
+			logMessage("< %s", debugCommand);
+			serial->print(debugCommand);
+			debugCommand[0] = 0;
+			debugIndex = 0;
+		}
+
+		isResponseComplete = serialReadLine(serial,
+											at09Response,
+											&responseIndex,
+											sizeof(at09Response),
+											0);
+		if (isResponseComplete)
+		{
+			logMessage("> %s", at09Response);
+			at09Response[0] = 0;
+			responseIndex = 0;
+		}
+	}
+#endif
+
+#ifdef DEBUG
 	void AT09::Initialize(char rx, char tx)
 	{
 		rxPin = rx;
 		txPin = tx;
+		responseIndex = 0;
 		serial = new SoftwareSerial(rx, tx);
-		serial->setTimeout(AT09_RESPONSE_TIMEOUT_MS);
-
 		Serial.begin(115200);
-		Serial.setTimeout(AT09_RESPONSE_TIMEOUT_MS);
-
 		findBaudRate();
-		
 	}
 #else
 	void AT09::Initialize() 
 	{
 		serial = &Serial;
-		serial.setTimeout(AT09_RESPONSE_TIMEOUT_MS);
+		responseIndex = 0;
 		findBaudRate();
 	}
 #endif
@@ -78,6 +111,7 @@ namespace at09
 			port->begin(baudRates[i]);
 			isBaudFound = sendAndWait("AT");
 
+
 			if (isBaudFound)
 			{
 #ifdef DEBUG
@@ -95,36 +129,27 @@ namespace at09
 
 	bool AT09::sendAndWait(const char * message) 
 	{
-		unsigned long start;
-		int numBytesRead = 0;
-		int i = 0;
+		bool isResponseComplete = false;
 
 		if (!initialized)
 			return false;
 
-		start = millis();
-
 #ifdef DEBUG
 		logMessage("< %s", message);
 #endif
-
 		serial->println(message);
 
-		while ((millis() - start) < AT09_RESPONSE_TIMEOUT_MS)
-		{
-			if (serial->available())
-			{
-				numBytesRead = serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
-				at09Response[numBytesRead] = 0; // Terminate string
-				break;
-			}
-		}
+		isResponseComplete = serialReadLine(serial,
+											at09Response,
+											&responseIndex,
+											sizeof(at09Response),
+											AT09_RESPONSE_TIMEOUT_MS);
 
 #ifdef DEBUG
 		if (at09Response[0])
 			logMessage("> %s", at09Response);
 #endif
-		return isResponseValid();
+		return (isResponseComplete && isResponseValid());
 	}
 
 	bool AT09::isResponseValid()
@@ -134,43 +159,6 @@ namespace at09
 										 at09Response[1] == 'K'));
 		at09Response[0] = 0;
 		return isValid;
-	}
-
-	void AT09::HandleSerialEvent()
-	{
-		int numBytesRead = 0;
-
-		if (!initialized)
-			return;
-
-#ifdef DEBUG
-		// Relay serial to software serial
-		if (Serial.available())
-		{
-			numBytesRead = Serial.readBytesUntil('\n', debugResponse, BUFFER_SIZE);
-			debugResponse[numBytesRead] = 0; // Terminate string
-		}
-
-		if (debugResponse[0])
-		{
-			logMessage("< %s", debugResponse);
-			serial->println(debugResponse);
-			debugResponse[0] = 0;
-		}
-
-#endif
-
-		if (serial->available())
-		{
-			numBytesRead = serial->readBytesUntil('\n', at09Response, BUFFER_SIZE);
-			at09Response[numBytesRead] = 0; // Terminate string
-		}
-
-#ifdef DEBUG
-		if (at09Response[0])
-			logMessage("> %s", at09Response);
-			at09Response[0] = 0;
-#endif
 	}
 
 	bool AT09::IsConnected()
@@ -216,6 +204,68 @@ namespace at09
 		char command[BUFFER_SIZE];
 		snprintf(command, BUFFER_SIZE, "AT+CHAR=%d", (int)uuid);
 		return sendAndWait(command);
+	}
+
+	void printBuffer(char * buffer)
+	{
+		char byte;
+		for (int i = 0; i <= strlen(buffer); i++)
+		{
+			if (buffer[i] == '\n')
+				Serial.println("\\n");
+			else if (buffer[i] == '\r')
+				Serial.print("\\r");
+			else
+				Serial.print(buffer[i]);
+		}
+
+		Serial.print("\n");
+	}
+
+	bool serialReadLine(Stream * serial,
+						char * buffer,
+						unsigned int * index,
+						unsigned int bufferLen,
+						unsigned int timeout)
+	{
+		unsigned long start = millis();
+		int readByte;
+		bool isComplete = false;
+
+		while (timeout == 0 || (millis() - start) < timeout)
+		{
+			if (serial->available())
+			{
+				if ((*index) >= (bufferLen - 1)) // Leave room for terminating character
+				{
+#ifdef DEBUG
+					logMessage("ERROR: Index out of bounds.");
+#endif
+					buffer[0] = 0;
+					index = 0;
+					return false;
+				}
+
+				readByte = serial->read();
+				buffer[(*index)++] = readByte;
+
+				printBuffer(buffer);
+
+				if (readByte == '\n')
+				{
+					logMessage("Done");
+					isComplete = true;
+					buffer[(*index)] = 0;
+					break;
+				}
+			}
+			else if (timeout == 0)
+			{
+				break;
+			}
+		}
+
+		return isComplete;
 	}
 
 #ifdef DEBUG

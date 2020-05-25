@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 #ifdef DEBUG
-	#define BUFFER_SIZE 128
+	#define BUFFER_SIZE 512
 #else
 	#define BUFFER_SIZE 16
 #endif
@@ -37,6 +37,7 @@ namespace at09
 		char baudRate;
 		char statePin;
 		char at09Response[BUFFER_SIZE];
+		unsigned int responseIndex;
 		Stream * serial;
 
 #ifdef DEBUG
@@ -57,8 +58,11 @@ namespace at09
 #endif
 		);
 
+#ifdef DEBUG
+		void HandleSerialRelay();
+#endif
+
 		bool Disconnect();
-		void HandleSerialEvent();
 		bool IsConnected();
 		bool FactoryReset();
 		bool Reboot();
@@ -75,6 +79,12 @@ namespace at09
 		bool SetPowerLevel(char level);
 		bool Sleep();
 	}; /* class AT09 */
+
+	bool serialReadLine(Stream * serial,
+						char * buffer,
+						unsigned int * index,
+						unsigned int bufferLen,
+						unsigned int timeout);
 
 #ifdef DEBUG
 	void logMessage(const char * format, ...);
