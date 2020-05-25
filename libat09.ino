@@ -3,7 +3,7 @@
 
 using namespace at09;
 
-int i = 0;
+unsigned long i = 0;
 AT09 blueDash;
 
 void setup()
@@ -17,5 +17,5 @@ void setup()
 
 void loop()
 {
-	blueDash.HandleSerialEvent();
+	blueDash.HandleSerialRelay();
 }
