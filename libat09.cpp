@@ -106,7 +106,7 @@ namespace at09
 		for (char i = 0; i < 7; i++)
 		{
 #ifdef DEBUG
-			logMessage("Attempting %ld...", baudRates[i]);
+			logMessage("Attempting %ld...\n", baudRates[i]);
 #endif
 			port->begin(baudRates[i]);
 			isBaudFound = sendAndWait("AT");
@@ -115,14 +115,14 @@ namespace at09
 			if (isBaudFound)
 			{
 #ifdef DEBUG
-				logMessage("Found.");
+				logMessage("Found.\n");
 #endif
 				return;
 			}
 		}
 
 #ifdef DEBUG
-		logMessage("Not found.");
+		logMessage("Not found.\n");
 #endif
 		initialized = false;
 	}
@@ -135,7 +135,7 @@ namespace at09
 			return false;
 
 #ifdef DEBUG
-		logMessage("< %s", message);
+		logMessage("< %s\n", message);
 #endif
 		serial->println(message);
 
@@ -206,22 +206,6 @@ namespace at09
 		return sendAndWait(command);
 	}
 
-	void printBuffer(char * buffer)
-	{
-		char byte;
-		for (int i = 0; i <= strlen(buffer); i++)
-		{
-			if (buffer[i] == '\n')
-				Serial.println("\\n");
-			else if (buffer[i] == '\r')
-				Serial.print("\\r");
-			else
-				Serial.print(buffer[i]);
-		}
-
-		Serial.print("\n");
-	}
-
 	bool serialReadLine(Stream * serial,
 						char * buffer,
 						unsigned int * index,
@@ -239,7 +223,7 @@ namespace at09
 				if ((*index) >= (bufferLen - 1)) // Leave room for terminating character
 				{
 #ifdef DEBUG
-					logMessage("ERROR: Index out of bounds.");
+					logMessage("ERROR: Index out of bounds.\n");
 #endif
 					buffer[0] = 0;
 					index = 0;
@@ -249,11 +233,8 @@ namespace at09
 				readByte = serial->read();
 				buffer[(*index)++] = readByte;
 
-				printBuffer(buffer);
-
 				if (readByte == '\n')
 				{
-					logMessage("Done");
 					isComplete = true;
 					buffer[(*index)] = 0;
 					break;
@@ -279,7 +260,7 @@ namespace at09
 
 		vsnprintf(buffer, LOG_BUFFER_SIZE, format, argptr);
 
-		Serial.println(buffer);
+		Serial.print(buffer);
 
 		va_end(argptr);
 	}
