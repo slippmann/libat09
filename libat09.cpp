@@ -231,6 +231,11 @@ namespace at09
 				}
 
 				readByte = serial->read();
+
+				// Ignore zeroes
+				if (readByte == 0)
+					continue;
+				
 				buffer[(*index)++] = readByte;
 
 				if (readByte == '\n')
