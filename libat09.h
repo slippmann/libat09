@@ -14,6 +14,8 @@
 namespace at09
 {
 	extern const int AT09_RESPONSE_TIMEOUT_MS;
+	extern const int AT09_WAKE_SEND_TIME_MS;
+	extern const int AT09_WAKE_TIMEOUT_MS;
 	
 	extern const long baudRates[];
 
@@ -47,6 +49,7 @@ namespace at09
 
 		void findBaudRate();
 		bool isResponseValid();
+		bool send(const char * message);
 		bool sendAndWait(const char * message);
 		
 	public:
@@ -78,6 +81,7 @@ namespace at09
 		bool SetCharacteristicUUID(int uuid);
 		bool SetPowerLevel(char level);
 		bool Sleep();
+		bool Wake();
 	}; /* class AT09 */
 
 	bool serialReadLine(Stream * serial,

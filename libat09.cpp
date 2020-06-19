@@ -17,6 +17,8 @@ namespace at09
 #endif
 
 	const int AT09_RESPONSE_TIMEOUT_MS = 1000;
+	const int AT09_WAKE_SEND_TIME_MS = 2000;
+	const int AT09_WAKE_TIMOUT_MS = 5000;
 
 	const long baudRates[] = {
 			2400,
@@ -77,7 +79,10 @@ namespace at09
 		rxPin = rx;
 		txPin = tx;
 		responseIndex = 0;
-		serial = new SoftwareSerial(rx, tx);
+
+		pinMode(rxPin, INPUT);
+		pinMode(txPin, OUTPUT);
+		serial = new SoftwareSerial(rxPin, txPin);
 		Serial.begin(115200);
 		findBaudRate();
 	}
@@ -127,10 +132,8 @@ namespace at09
 		initialized = false;
 	}
 
-	bool AT09::sendAndWait(const char * message) 
+	bool AT09::send(const char * message)
 	{
-		bool isResponseComplete = false;
-
 		if (!initialized)
 			return false;
 
@@ -138,6 +141,16 @@ namespace at09
 		logMessage("< %s\n", message);
 #endif
 		serial->println(message);
+
+		return true;
+	}
+
+	bool AT09::sendAndWait(const char * message) 
+	{
+		bool isResponseComplete = false;
+
+		if (!send(message))
+			return false;
 
 		isResponseComplete = serialReadLine(serial,
 											at09Response,
@@ -158,6 +171,7 @@ namespace at09
 										(at09Response[0] == 'O' && 
 										 at09Response[1] == 'K'));
 		at09Response[0] = 0;
+		responseIndex = 0;
 		return isValid;
 	}
 
@@ -173,9 +187,7 @@ namespace at09
 	
 	bool AT09::SendHello()
 	{
-		sendAndWait((const char *)commandPrefix);
-
-		return true;
+		return sendAndWait((const char *)commandPrefix);
 	}
 
 	bool AT09::SetName(char * btName)
@@ -206,6 +218,33 @@ namespace at09
 		return sendAndWait(command);
 	}
 
+	bool AT09::Sleep()
+	{
+		return sendAndWait("AT+SLEEP");
+	}
+
+	bool AT09::Wake()
+	{
+		// Send continuously over serial to wake
+		//  time found experimentally
+		unsigned long start = millis();
+		while (millis() - start < AT09_WAKE_SEND_TIME_MS)
+		{
+			serial->write(1);
+		}
+
+		start = millis();
+
+		// Wait for device to respond
+		while (millis() - start < AT09_WAKE_TIMOUT_MS)
+		{
+			if (SendHello())
+				return true;
+		}
+
+		return false;
+	}
+
 	bool serialReadLine(Stream * serial,
 						char * buffer,
 						unsigned int * index,
@@ -226,7 +265,7 @@ namespace at09
 					logMessage("ERROR: Index out of bounds.\n");
 #endif
 					buffer[0] = 0;
-					index = 0;
+					*index = 0;
 					return false;
 				}
 
